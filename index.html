@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GENITUS SCORE VS. PERFORMANCE</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root{--bg:#f4f7fb;--surface:#ffffff;--panel:#ffffff;--border:#d9e2ec;--accent:#0e7490;--gold:#b45309;--green:#15803d;--red:#b91c1c;--muted:#52606d;--text:#1e293b;--bright:#0f172a;--mono:'Space Mono',monospace;--sans:'Rajdhani',sans-serif;}
+    :root.dark-theme{--bg:#080c10;--surface:#0d1117;--panel:#111820;--border:#1e2d3d;--accent:#00d4ff;--gold:#f0c040;--green:#00ff88;--red:#ff3b5c;--muted:#7d92a8;--text:#c8d8e8;--bright:#ffffff;}
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;min-height:100vh;transition:background .25s,color .25s;}
+    header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:200;}
+    .logo{display:flex;align-items:center;gap:12px;}
+    .logo-mark{width:32px;height:32px;border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:14px;color:var(--accent);}
+    .logo-text{font-family:var(--mono);font-size:13px;letter-spacing:3px;color:var(--bright);}
+    .logo-sub{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--muted);display:block;margin-top:1px;}
+    #themeToggleBtn{background:none;border:1px solid var(--border);color:var(--accent);width:30px;height:30px;border-radius:2px;cursor:pointer;font-size:14px;}
+    .cache-badge{font-family:var(--mono);font-size:9px;letter-spacing:1px;padding:3px 8px;border:1px solid var(--accent);color:var(--accent);border-radius:2px;text-transform:uppercase;}
+    .toolbar{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
+    select,input[type="text"]{background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12px;padding:7px 10px;outline:none;border-radius:2px;}
+    input[type="text"]{width:200px;}
+    .count-badge{font-family:var(--mono);font-size:11px;color:var(--muted);margin-left:auto;}
+    .main{max-width:1300px;margin:0 auto;padding:20px;}
+    .panel-block{background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:16px;margin-bottom:18px;}
+    .panel-block h3{font-family:var(--mono);font-size:12px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:12px;}
+    .panel-block p.note{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.6;}
+    .chart-wrap{height:480px;position:relative;}
+    .stat-row{display:flex;gap:24px;flex-wrap:wrap;margin-bottom:14px;}
+    .stat-box{text-align:center;}
+    .stat-val{font-family:var(--mono);font-size:28px;font-weight:700;}
+    .stat-lbl{font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;margin-top:2px;}
+    table{width:100%;border-collapse:collapse;font-size:12px;}
+    th{font-family:var(--mono);font-size:9px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;padding:7px 9px;text-align:right;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;}
+    th:hover{color:var(--accent);}
+    th.sorted{color:var(--accent);}
+    th:first-child,th:nth-child(2){text-align:left;}
+    td{padding:6px 9px;border-bottom:1px solid rgba(125,146,168,0.15);text-align:right;font-family:var(--mono);font-size:11px;}
+    td:first-child{font-weight:700;color:var(--accent);text-align:left;}
+    td:nth-child(2){text-align:left;font-family:var(--sans);color:var(--muted);}
+    .score-pill{display:inline-block;min-width:34px;padding:2px 8px;border-radius:10px;font-weight:700;text-align:center;}
+    .score-green{background:rgba(21,128,61,0.15);color:var(--green);}
+    .score-gold{background:rgba(180,83,9,0.15);color:var(--gold);}
+    .score-red{background:rgba(185,28,28,0.15);color:var(--red);}
+    .chg-pos{color:var(--green);} .chg-neg{color:var(--red);}
+    .loading-line{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:center;padding:60px;}
+    .disclaimer{font-size:10px;color:var(--muted);line-height:1.6;border-top:1px solid var(--border);padding-top:10px;margin-top:6px;}
+  </style>
+</head>
+<body>
+<header>
+  <div class="logo"><div class="logo-mark">R</div><div><span class="logo-text">GENITUS</span><span class="logo-sub">SCORE VS. PERFORMANCE</span></div></div>
+  <div style="display:flex;align-items:center;gap:10px"><span class="cache-badge" id="cacheBadge">● lädt Cache...</span><button id="themeToggleBtn" title="Toggle theme">🌙</button></div>
+</header>
+<div class="toolbar">
+  <select id="indexFilterSelect" onchange="renderAll()"><option value="ALL">Alle Indizes</option></select>
+  <select id="sectorFilterSelect" onchange="renderAll()"><option value="ALL">Alle Sektoren</option></select>
+  <input type="text" id="searchInput" placeholder="Symbol oder Name suchen..." oninput="renderTable()">
+  <span class="count-badge" id="countBadge"></span>
+</div>
+<div class="main" id="mainPanel">
+  <div class="loading-line">Lade Bilanz-Cache + 5-Jahres-Kurshistorie (zero live calls)...</div>
+</div>
+
+<script>
+  const BILANZ_DATA_URL = 'https://raw.githubusercontent.com/Babybounce500/genitus-ticker-cache/main/bilanz-data.json';
+  const PRICE_HISTORY_URL = 'https://raw.githubusercontent.com/Babybounce500/genitus-ticker-cache/main/price-history-data.json';
+
+  (function(){
+    const KEY='genitusTheme:scoreperf';
+    function applyTheme(t){ document.documentElement.classList.toggle('dark-theme', t==='dark'); localStorage.setItem(KEY,t); const btn=document.getElementById('themeToggleBtn'); if(btn) btn.textContent = t==='dark' ? '☀' : '🌙'; }
+    window.__theme = localStorage.getItem(KEY) || 'light';
+    applyTheme(window.__theme);
+    document.addEventListener('DOMContentLoaded', function(){ const btn=document.getElementById('themeToggleBtn'); if(btn) btn.addEventListener('click', function(){ window.__theme = window.__theme==='dark' ? 'light' : 'dark'; applyTheme(window.__theme); }); });
+  })();
+
+  // ── Ported 1:1 from Bilanz-Screener.html / core/ratios.py ──
+  const ROW_ALIASES = {
+    total_revenue: ["Total Revenue","TotalRevenue","Revenue","Total revenue"],
+    operating_income: ["Operating Income","OperatingIncome","Operating Income or Loss"],
+    net_income: ["Net Income","NetIncome","Net Income Common Stockholders"],
+    total_assets: ["Total Assets","TotalAssets"],
+    total_debt: ["Total Debt","TotalDebt"],
+    total_equity: ["Stockholders Equity","Total Stockholder Equity","Common Stock Equity"],
+    cash: ["Cash And Cash Equivalents","Cash","Cash Cash Equivalents And Short Term Investments"],
+    operating_cf: ["Operating Cash Flow","Total Cash From Operating Activities","Cash Flow From Continuing Operating Activities"],
+    capex: ["Capital Expenditure","Capital Expenditures","CapitalExpenditure"],
+    free_cash_flow: ["Free Cash Flow","FreeCashFlow"],
+  };
+  function pickRow(rowsObj, key){
+    if(!rowsObj) return null;
+    const aliases = ROW_ALIASES[key] || [key];
+    const lowerMap = {};
+    Object.keys(rowsObj).forEach(k=>lowerMap[k.toLowerCase().trim()]=k);
+    for(const a of aliases){ const al=a.toLowerCase().trim(); if(lowerMap[al]) return rowsObj[lowerMap[al]]; }
+    for(const a of aliases){
+      const aTokens = new Set(a.toLowerCase().trim().split(' '));
+      for(const [low, real] of Object.entries(lowerMap)){
+        const lowTokens = new Set(low.split(' '));
+        let subset = true; aTokens.forEach(t=>{ if(!lowTokens.has(t)) subset=false; });
+        if(subset) return rowsObj[real];
+      }
+    }
+    return null;
+  }
+  function latest(arr){ if(!arr) return null; for(const v of arr){ if(v!=null && !isNaN(v)) return v; } return null; }
+  function safeDiv(a,b,mult=1){ if(a==null||b==null) return null; if(b===0) return null; return a/b*mult; }
+  function computeRatios(fin, info){
+    const income = fin.income?.rows, balance = fin.balance?.rows, cashflow = fin.cashflow?.rows;
+    const revenue = latest(pickRow(income,'total_revenue'));
+    const opInc = latest(pickRow(income,'operating_income'));
+    const netInc = latest(pickRow(income,'net_income'));
+    const totalAssets = latest(pickRow(balance,'total_assets'));
+    const totalDebt = latest(pickRow(balance,'total_debt'));
+    const equity = latest(pickRow(balance,'total_equity'));
+    const cash = latest(pickRow(balance,'cash')) || 0;
+    const opCf = latest(pickRow(cashflow,'operating_cf'));
+    let fcf = latest(pickRow(cashflow,'free_cash_flow'));
+    if(fcf==null){ const cx=latest(pickRow(cashflow,'capex')); if(opCf!=null && cx!=null) fcf = opCf + cx; }
+    const taxRate = 0.21;
+    const nopat = opInc!=null ? opInc*(1-taxRate) : null;
+    const out = {};
+    out.net_margin = safeDiv(netInc, revenue, 100);
+    out.fcf_margin = safeDiv(fcf, revenue, 100);
+    out.roe = safeDiv(netInc, equity, 100);
+    const investedCapital = (equity||0) + (totalDebt||0) - Math.min((cash||0),(totalDebt||0));
+    out.roic = safeDiv(nopat, investedCapital>0?investedCapital:null, 100);
+    out.debt_equity = safeDiv(totalDebt, equity);
+    out.equity_ratio = safeDiv(equity, totalAssets, 100);
+    out.pe = info?.trailingPE ?? null;
+    out.pb = info?.priceToBook ?? null;
+    out.ev_ebitda = info?.enterpriseToEbitda ?? null;
+    out.dividend_yield = (typeof info?.dividendYield==='number') ? info.dividendYield : null;
+    return out;
+  }
+  function clip(v,lo=0,hi=100){ return Math.max(lo,Math.min(hi,v)); }
+  function scoreProfitability(r){ let s=0,n=0; if(r.net_margin!=null){s+=clip(50+r.net_margin*2);n++;} if(r.roe!=null){s+=clip(40+r.roe*2);n++;} if(r.roic!=null){s+=clip(40+r.roic*2.5);n++;} return n?s/n:50; }
+  function scoreLeverage(r){ const s=[]; if(r.debt_equity!=null){ if(r.debt_equity<0.3)s.push(90); else if(r.debt_equity<0.6)s.push(80); else if(r.debt_equity<1)s.push(65); else if(r.debt_equity<2)s.push(45); else s.push(25);} if(r.equity_ratio!=null) s.push(clip(r.equity_ratio+30)); return s.length?s.reduce((a,b)=>a+b,0)/s.length:50; }
+  function scoreEfficiency(r){ const s=[]; if(r.fcf_margin!=null) s.push(clip(50+r.fcf_margin*2.5)); return s.length?s.reduce((a,b)=>a+b,0)/s.length:50; }
+  function scoreValuation(r){ const s=[]; if(r.pe!=null&&r.pe>0){ if(r.pe<12)s.push(85); else if(r.pe<18)s.push(75); else if(r.pe<25)s.push(60); else if(r.pe<40)s.push(45); else s.push(25);} if(r.pb!=null&&r.pb>0){ if(r.pb<1.5)s.push(85); else if(r.pb<3)s.push(70); else if(r.pb<5)s.push(55); else s.push(35);} if(r.ev_ebitda!=null&&r.ev_ebitda>0){ if(r.ev_ebitda<10)s.push(85); else if(r.ev_ebitda<15)s.push(70); else if(r.ev_ebitda<25)s.push(55); else s.push(35);} return s.length?s.reduce((a,b)=>a+b,0)/s.length:50; }
+  function healthScore(r){
+    const profit = scoreProfitability(r), lev = scoreLeverage(r), eff = scoreEfficiency(r), val = scoreValuation(r);
+    return Math.round(profit*0.40 + lev*0.25 + eff*0.15 + val*0.20);
+  }
+
+  function pearson(xs, ys){
+    const n = xs.length;
+    if(n<2) return null;
+    const mx = xs.reduce((a,b)=>a+b,0)/n, my = ys.reduce((a,b)=>a+b,0)/n;
+    let num=0, dx2=0, dy2=0;
+    for(let i=0;i<n;i++){ const dx=xs[i]-mx, dy=ys[i]-my; num+=dx*dy; dx2+=dx*dx; dy2+=dy*dy; }
+    if(dx2===0||dy2===0) return null;
+    return num/Math.sqrt(dx2*dy2);
+  }
+
+  let rowsData = [];
+  let sortKey = 'totalReturn', sortDir = 'desc';
+  let scatterChart = null;
+
+  function fmtPct(n,d=1){ return n==null?'—':(n>=0?'+':'')+n.toFixed(d)+'%'; }
+  function scoreClass(v){ if(v==null) return ''; return v>=65?'score-green':v>=45?'score-gold':'score-red'; }
+
+  async function loadData(){
+    try{
+      const [bRes, pRes] = await Promise.all([fetch(BILANZ_DATA_URL), fetch(PRICE_HISTORY_URL)]);
+      if(!bRes.ok || !pRes.ok) throw new Error('HTTP '+bRes.status+'/'+pRes.status);
+      const bilanz = await bRes.json();
+      const priceHist = await pRes.json();
+      rowsData = Object.entries(bilanz)
+        .filter(([sym,d])=>d.income?.columns?.length && priceHist[sym]?.summary)
+        .map(([sym,d])=>{
+          const info = { trailingPE:d.info?.trailingPE, dividendYield:d.info?.dividendYield, priceToBook:d.info?.priceToBook, enterpriseToEbitda:d.info?.enterpriseToEbitda };
+          const ratios = computeRatios(d, info);
+          const score = healthScore(ratios);
+          const s = priceHist[sym].summary;
+          return {
+            symbol:sym, name:d.name, sector:d.sector||d.info?.yahooSector||'Unbekannt', index:d.index, score,
+            totalReturn:s.totalReturn, priceReturn:s.priceReturn, dividendContribution:s.dividendContribution,
+            annualizedTotalReturn:s.annualizedTotalReturn, annualVol:s.annualVol, years:s.years,
+            pe:ratios.pe, dividendYield:ratios.dividend_yield,
+          };
+        });
+      document.getElementById('cacheBadge').textContent = `● ${rowsData.length} Firmen (Score + 5J-Performance)`;
+      const indices = [...new Set(rowsData.map(r=>r.index))].sort();
+      const idxSel = document.getElementById('indexFilterSelect');
+      indices.forEach(i=>{ const o=document.createElement('option'); o.value=i; o.textContent=i; idxSel.appendChild(o); });
+      const sectors = [...new Set(rowsData.map(r=>r.sector))].sort();
+      const secSel = document.getElementById('sectorFilterSelect');
+      sectors.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; secSel.appendChild(o); });
+      renderAll();
+    }catch(e){
+      document.getElementById('cacheBadge').textContent = '● Cache-Fehler';
+      document.getElementById('mainPanel').innerHTML = `<div class="loading-line">Cache konnte nicht geladen werden: ${e.message}</div>`;
+    }
+  }
+
+  function filteredRows(){
+    const idx = document.getElementById('indexFilterSelect').value;
+    const sec = document.getElementById('sectorFilterSelect').value;
+    return rowsData.filter(r=>(idx==='ALL'||r.index===idx) && (sec==='ALL'||r.sector===sec));
+  }
+
+  window.sortBy = function(key){
+    if(sortKey===key){ sortDir = sortDir==='asc'?'desc':'asc'; } else { sortKey=key; sortDir='desc'; }
+    renderTable();
+  };
+
+  function renderAll(){
+    const rows = filteredRows();
+    document.getElementById('countBadge').textContent = `${rows.length} Firmen`;
+
+    const validPairs = rows.filter(r=>r.score!=null && r.totalReturn!=null && isFinite(r.totalReturn));
+    const corr = pearson(validPairs.map(r=>r.score), validPairs.map(r=>r.totalReturn));
+    const avgYears = validPairs.length ? validPairs.reduce((a,r)=>a+(r.years||5),0)/validPairs.length : 5;
+
+    const mainPanel = document.getElementById('mainPanel');
+    mainPanel.innerHTML = `
+      <div class="panel-block">
+        <h3>Korrelation: Health-Score ↔ Total Return (${avgYears.toFixed(1)} Jahre)</h3>
+        <div class="stat-row">
+          <div class="stat-box">
+            <div class="stat-val" style="color:${corr==null?'var(--muted)':Math.abs(corr)>0.3?(corr>0?'var(--green)':'var(--red)'):'var(--gold)'}">${corr==null?'—':corr.toFixed(3)}</div>
+            <div class="stat-lbl">Pearson-Korrelation (r)</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val">${validPairs.length}</div>
+            <div class="stat-lbl">Firmen im Sample</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val">${corr==null?'—':(corr*corr).toFixed(3)}</div>
+            <div class="stat-lbl">R² (erklärte Varianz)</div>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="scatterChart"></canvas></div>
+        <p class="note">Jeder Punkt: eine Firma. X-Achse = Health-Score (heute berechnet aus den aktuell gecachten Bilanzdaten), Y-Achse = tatsächliche Total-Return-Performance der letzten ~${avgYears.toFixed(0)} Jahre (Kurs + reinvestierte Dividenden, via Yahoo adjclose). <b>Wichtig:</b> Das ist kein echter Backtest — der Score wird mit den AKTUELLEN (neuesten) Bilanzdaten berechnet, nicht mit den Bilanzdaten von vor 5 Jahren. Ein hoher Score heute sagt also nicht direkt "das hat die Rendite verursacht", sondern zeigt nur, ob heute gesunde Firmen historisch tendenziell auch gut liefen (Survivorship- und Look-ahead-Bias möglich).</p>
+      </div>
+
+      <div class="panel-block">
+        <h3>Firmen-Tabelle</h3>
+        <table>
+          <thead><tr id="headRow"></tr></thead>
+          <tbody id="bodyRows"></tbody>
+        </table>
+      </div>
+
+      <div class="panel-block">
+        <div class="disclaimer">Reine Cache-Auswertung (Bilanz-Batch + 5-Jahres-Kurshistorie), keine Live-Abfrage. Total Return via Yahoo adjclose (Kurs + reinvestierte Dividenden). Health-Score vereinfacht (ohne Liquiditäts-Sub-Score, siehe Sektor-Heatmap-Hinweis). Historische Analyse, keine Prognose, keine Anlageberatung, kein Backtest im strengen Sinn (siehe Hinweis oben).</div>
+      </div>
+    `;
+
+    buildHead();
+    renderTable();
+
+    const ctx = document.getElementById('scatterChart').getContext('2d');
+    if(scatterChart) scatterChart.destroy();
+    scatterChart = new Chart(ctx, {
+      type:'scatter',
+      data:{ datasets:[{
+        label:'Firmen',
+        data: validPairs.map(r=>({x:r.score, y:r.totalReturn, label:r.symbol})),
+        backgroundColor:'rgba(14,116,144,0.45)',
+        pointRadius:4,
+      }]},
+      options:{ responsive:true, maintainAspectRatio:false,
+        scales:{
+          x:{ title:{display:true, text:'Health-Score', color:'#7d92a8'}, min:0, max:100, ticks:{color:'#7d92a8'}, grid:{color:'rgba(125,146,168,0.15)'} },
+          y:{ title:{display:true, text:'Total Return %', color:'#7d92a8'}, ticks:{color:'#7d92a8', callback:v=>v+'%'}, grid:{color:'rgba(125,146,168,0.15)'} },
+        },
+        plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: (ctx)=> `${ctx.raw.label}: Score ${ctx.raw.x}, Return ${ctx.raw.y.toFixed(1)}%` } } }
+      }
+    });
+  }
+
+  const COLUMNS = [
+    { key:'symbol', label:'Symbol' }, { key:'name', label:'Name' }, { key:'index', label:'Index' },
+    { key:'score', label:'Score' }, { key:'totalReturn', label:'Total Return' }, { key:'priceReturn', label:'Kurs-Return' },
+    { key:'dividendContribution', label:'Div-Beitrag' }, { key:'annualizedTotalReturn', label:'p.a.' }, { key:'annualVol', label:'Volatilität' },
+    { key:'pe', label:'KGV' }, { key:'dividendYield', label:'Yield' },
+  ];
+  function buildHead(){
+    document.getElementById('headRow').innerHTML = COLUMNS.map(c=>`<th class="${sortKey===c.key?'sorted':''}" onclick="sortBy('${c.key}')">${c.label}${sortKey===c.key?(sortDir==='asc'?' ▲':' ▼'):''}</th>`).join('');
+  }
+  function renderTable(){
+    const q = document.getElementById('searchInput').value.toLowerCase().trim();
+    let rows = filteredRows().filter(r=>!q || r.symbol.toLowerCase().includes(q) || r.name.toLowerCase().includes(q));
+    rows.sort((a,b)=>{
+      const av=a[sortKey], bv=b[sortKey];
+      if(av==null && bv==null) return 0;
+      if(av==null) return 1; if(bv==null) return -1;
+      if(typeof av==='string') return sortDir==='asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+      return sortDir==='asc' ? av-bv : bv-av;
+    });
+    document.getElementById('bodyRows').innerHTML = rows.map(r=>`<tr>
+      <td>${r.symbol}</td><td>${r.name}</td><td>${r.index}</td>
+      <td><span class="score-pill ${scoreClass(r.score)}">${r.score}</span></td>
+      <td class="${r.totalReturn>0?'chg-pos':'chg-neg'}">${fmtPct(r.totalReturn)}</td>
+      <td class="${r.priceReturn>0?'chg-pos':'chg-neg'}">${fmtPct(r.priceReturn)}</td>
+      <td class="${r.dividendContribution>0?'chg-pos':'chg-neg'}">${fmtPct(r.dividendContribution)}</td>
+      <td>${fmtPct(r.annualizedTotalReturn)}</td>
+      <td>${r.annualVol!=null?r.annualVol.toFixed(1)+'%':'—'}</td>
+      <td>${r.pe!=null?r.pe.toFixed(1):'—'}</td>
+      <td>${r.dividendYield!=null?r.dividendYield.toFixed(2)+'%':'—'}</td>
+    </tr>`).join('');
+  }
+
+  loadData();
+</script>
+</body>
+</html>
